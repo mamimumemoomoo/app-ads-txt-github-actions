@@ -1,0 +1,40 @@
+#!/usr/bin/perl
+
+my $file = "app-ads.txt";
+my ($line, $is_failed) = 0;
+open(my $fh, "<", $file) or die("Error: $!\n");
+while (my $r = <$fh>) {
+  $line++;
+  # #から始まる行はコメントなのでテストしない
+  # 空行はテストしない
+  if ($r !~ /^\#/ && $r !~ /^$/) {
+    $r =~ s/[\r\n]//;  # 改行除去
+    $r =~ s/ //g;      # スペース除去
+    my ($s1, $s2, $s3, $s4) = split(",", $r);
+
+    my $str = "";
+    my $add_str = sub {
+        $str .= sprintf "invalid string: %s\n", $_[0];
+    };
+
+    # Domain name of the advertising system
+    $add_str->($s1) if $s1 !~ /^([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}$/;
+
+    # Publisher’s Account ID
+    $add_str->($s2) if $s2 !~ /^([a-zA-Z0-9]|[a-zA-Z0-9]|\-|\_)+$/;
+
+    # Type of Account/Relationship
+    $add_str->($s3) if $s3 !~ /^(DIRECT|RESELLER)$/i;
+
+    # Certification Authority ID(optional)
+    ($s4) = split("#", $s4); # コメントアウト以下を捨てる
+    $add_str->($s4) if $s4 != undef && $s4 !~ /^[a-zA-Z0-9]+$/;
+
+    if (length $str > 0) {
+        print sprintf "Line %d: %s\n%s\n", $line, $r, $str;
+        $is_failed = 1;
+    }
+  }
+}
+close($fh);
+die("failed test") if $is_failed;
